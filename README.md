@@ -1,4 +1,4 @@
-![progress-banner](https://codecrafters.io/landing/images/default_progress_banners/redis.png)
+![progress-banner](https://app.codecrafters.io/progress/redis/6f669c52-7689-4ac9-88df-f47722121869)
 
 This is a starting point for Rust solutions to the
 ["Build Your Own Redis" Challenge](https://codecrafters.io/challenges/redis).
