@@ -1,4 +1,7 @@
-use std::{io::Write, net::TcpListener};
+use std::{
+    io::{BufRead, BufReader, BufWriter, Write},
+    net::TcpListener,
+};
 
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -8,8 +11,22 @@ fn main() {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(mut stream) => {
-                stream.write(b"+PONG\r\n").unwrap();
+            Ok(stream) => {
+                let mut reader = BufReader::new(&stream);
+                let mut writer = BufWriter::new(&stream);
+                loop {
+                    let mut msg = String::new();
+                    let result = reader.read_line(&mut msg);
+                    match result {
+                        Ok(_size) => {
+                            if msg.as_str() == "ping\r\n" {
+                                writer.write_all(b"+PONG\r\n").unwrap();
+                                writer.flush().unwrap();
+                            }
+                        }
+                        Err(_err) => break,
+                    }
+                }
             }
             Err(e) => {
                 println!("error: {}", e);
