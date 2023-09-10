@@ -1,32 +1,38 @@
-use std::{
-    io::{BufRead, BufReader, BufWriter, Write},
-    net::TcpListener,
+use std::io;
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{TcpListener, TcpStream},
 };
 
-fn main() {
+async fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
+    loop {
+        let mut buffer = [0; 512];
+        match stream.read(&mut buffer).await {
+            Ok(0) => return Ok(()),
+            Ok(_) => {
+                stream.write_all(b"+PONG\r\n").await?;
+                stream.flush().await?;
+            }
+            Err(e) => {
+                println!("Unable to read stream: {}", e);
+                return Err(e);
+            }
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() -> io::Result<()> {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
-    let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
+    let listener = TcpListener::bind("127.0.0.1:6379").await?;
 
-    for stream in listener.incoming() {
+    loop {
+        let stream = listener.accept().await;
         match stream {
-            Ok(stream) => {
-                let mut reader = BufReader::new(&stream);
-                let mut writer = BufWriter::new(&stream);
-                loop {
-                    let mut msg = String::new();
-                    let result = reader.read_line(&mut msg);
-                    match result {
-                        Ok(_size) => {
-                            if msg.as_str() == "ping\r\n" {
-                                writer.write_all(b"+PONG\r\n").unwrap();
-                                writer.flush().unwrap();
-                            }
-                        }
-                        Err(_err) => break,
-                    }
-                }
+            Ok((stream, _)) => {
+                tokio::spawn(handle_connection(stream));
             }
             Err(e) => {
                 println!("error: {}", e);
